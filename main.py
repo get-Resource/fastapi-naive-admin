@@ -2,28 +2,28 @@
 # -*- coding: UTF-8 -*-
 
 """
-
 @File ：main.py
-@Author ：Cary
-@Date ：2024/2/1 15:45
+@Author ：正鹏
 @Descripttion : "入口文件"
 """
 
 import uvicorn
 from fastapi import FastAPI, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import (
     get_redoc_html,
     get_swagger_ui_html,
     get_swagger_ui_oauth2_redirect_html,
 )
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from core.Exeption import Exception
+
+from core.Events import shutdown_events, start_events
+from core.Exeption import Exception as Exception_obj
+from core.LogManage.init_log import init_logs
 from core.Middleware.RequestIpChaeckMiddleware import RequestIpChaeckMiddleware
 from core.Middleware.RequestLogMiddleware import RequestLogMiddleware
+from core.NiceguiWeb.init import register_gui
 from utils.config import settings
-from core.Events import start_events, shutdown_events
-from core.LogManage.init_log import init_logs
 
 # 实例化fastapi
 app = FastAPI(
@@ -37,7 +37,9 @@ app = FastAPI(
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
-    responses={status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": Exception.Http422ErrorResponse}}
+    responses={
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": Exception_obj.Http422ErrorResponse}
+    },
 )
 
 # 日志初始化
@@ -47,11 +49,13 @@ init_logs()
 # 检查非法IP
 app.add_middleware(RequestIpChaeckMiddleware)
 # 跨域
-app.add_middleware(CORSMiddleware,
-                   allow_origins=settings.CORS_ORIGINS,
-                   allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
-                   allow_methods=settings.CORS_ALLOW_METHODS,
-                   allow_headers=settings.CORS_ALLOW_HEADERS)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=settings.CORS_ALLOW_METHODS,
+    allow_headers=settings.CORS_ALLOW_HEADERS,
+)
 # 打印请求日志
 app.add_middleware(RequestLogMiddleware)
 
@@ -61,9 +65,13 @@ app.add_event_handler("shutdown", shutdown_events.stopping(app))
 
 # API文档
 app.mount("/static", StaticFiles(directory="static"), name="static")
+register_gui(app)
 
-
-@app.get(f"{settings.SYS_ROUTER_PREFIX}/docs", summary="Swagger API文档", include_in_schema=False)
+@app.get(
+    f"{settings.SYS_ROUTER_PREFIX}/docs",
+    summary="Swagger API文档",
+    include_in_schema=False,
+)
 async def custom_swagger_ui_html():
     return get_swagger_ui_html(
         title=app.title + " Docs",
@@ -86,7 +94,11 @@ async def swagger_ui_redirect():
     return get_swagger_ui_oauth2_redirect_html()
 
 
-@app.get(f"{settings.SYS_ROUTER_PREFIX}/redoc", summary="Redoc APi文档", include_in_schema=False)
+@app.get(
+    f"{settings.SYS_ROUTER_PREFIX}/redoc",
+    summary="Redoc APi文档",
+    include_in_schema=False,
+)
 async def redoc_html():
     return get_redoc_html(
         openapi_url=app.openapi_url,
@@ -95,5 +107,5 @@ async def redoc_html():
     )
 
 
-if __name__ == '__main__':
-    uvicorn.run('main:app', host='0.0.0.0', port=8000, reload=True)
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

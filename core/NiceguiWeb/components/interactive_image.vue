@@ -1,30 +1,32 @@
 <template>
-
   <div
   :style="{position: 'relative', aspectRatio: size ? size[0] / size[1] : undefined}">
-  <img
-      ref="img"
-  :src="computed_src"
-  :style="{width: '100%', height: '100%', opacity: src ? 1 : 0}"
-  @load="onImageLoaded"
-  v-on="onCrossEvents"
-  v-on="onUserEvents"
-  draggable="false"
-  />
-  <svg ref="svg" style="position:absolute;top:0;left:0;pointer-events:none" :viewBox="viewBox">
-  <g :style="{display: showCross ? 'block' : 'none'}">
-  <line v-if="cross" :x1="x" y1="0" :x2="x" y2="100%" :stroke="cross === true ? 'black' : cross" />
-  <line v-if="cross" x1="0" :y1="y" x2="100%" :y2="y" :stroke="cross === true ? 'black' : cross" />
-  <slot name="cross" :x="x" :y="y"></slot>
-</g>
-<g v-html="content"></g>
-</svg>
-<slot></slot>
-</div>
+    <img
+        ref="img"
+        :src="computed_src"
+        :style="{width: '100%', height: '100%', opacity: src ? 1 : 0}"
+        @load="onImageLoaded"
+        v-on="onCrossEvents"
+        v-on="onUserEvents"
+        draggable="false"
+        />
+    <svg ref="svg" style="position:absolute;top:0;left:0;pointer-events:none" :viewBox="viewBox" v-on="onUserEvents">
+      <g :style="{display: showCross ? 'block' : 'none'}">
+        <line v-if="cross" :x1="x" y1="0" :x2="x" y2="100%" :stroke="cross === true ? 'black' : cross" />
+        <line v-if="cross" x1="0" :y1="y" x2="100%" :y2="y" :stroke="cross === true ? 'black' : cross" />
+        <slot name="cross" :x="x" :y="y"></slot>
+      </g>
+      <g v-html="content"></g>
+      <g :style="{display: showDraw ? 'block' : 'none'}">
+        <rect id="{shape_id}" x="{x}" y="{y}" rx="0" ry="0" width="{width}" height="{height}" fill="none" stroke="red" pointer-events="all"/>
+      </g>
+    </svg>
+    <slot></slot>
+  </div>
 </template>
 
 <script>
-  export default {
+export default {
 
   data() {
     return {
@@ -63,6 +65,9 @@
     ]) {
       this.$refs.svg.addEventListener(event, (e) => this.onPointerEvent(event, e));
     }
+    this.$refs.svg.addEventListener("mousemove", (event) => this.updateCrossHair(event));
+    this.$refs.svg.addEventListener("mouseenter", (event) => this.showCross = true);
+    this.$refs.svg.addEventListener("mouseleave", (event) => this.showCross = false);
   },
   updated() {
     this.compute_src();
@@ -87,8 +92,8 @@
     updateCrossHair(e) {
       const width = this.src ? this.loaded_image_width : this.size ? this.size[0] : 1;
       const height = this.src ? this.loaded_image_height : this.size ? this.size[1] : 1;
-      this.x = (e.offsetX * width) / e.target.clientWidth;
-      this.y = (e.offsetY * height) / e.target.clientHeight;
+      this.x = (e.offsetX * width) / this.$refs.img.clientWidth;
+      this.y = (e.offsetY * height) / this.$refs.img.clientHeight;
     },
     onImageLoaded(e) {
       this.loaded_image_width = e.target.naturalWidth;
@@ -139,7 +144,6 @@
     },
     onUserEvents() {
       const events = {};
-      console.log(this.events)
       for (const type of this.events) {
         events[type] = (event) => this.onMouseEvent(type, event);
       }
@@ -157,24 +161,13 @@
   },
 };
 </script>
-
 <style scoped>
-  :scope > div {
-  width: 100%;
-  height: 100%;
-  position: relative;
+svg * {
+  -moz-user-select:none;
+  -webkit-user-select:none;
+  -ms-user-select:none;
+  -khtml-user-select:none;
+  -o-user-select:none;
+  user-select:none;
 }
 </style>
-
-export default {
-  style: `
-svg * {
-  -moz-user-select:none; /* Firefox私有属性 */
-  -webkit-user-select:none; /* WebKit内核私有属性 */
-  -ms-user-select:none; /* IE私有属性(IE10及以后) */
-  -khtml-user-select:none; /* KHTML内核私有属性 */
-  -o-user-select:none; /* Opera私有属性 */
-  user-select:none; /* CSS3属性 */
-}
-`
-};

@@ -11,6 +11,7 @@
 from typing import Callable
 from fastapi import FastAPI
 from core.Exeption.init import register_exception
+from core.NiceguiWeb.init import register_gui
 from core.Routers.routers_init import register_routers
 from extend.datebase.init import register_db
 from extend.redis.init import register_redis

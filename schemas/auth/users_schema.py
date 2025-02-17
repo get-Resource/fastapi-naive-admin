@@ -8,30 +8,33 @@
 @Date ：2024/2/17 21:36
 @Descripttion : ""
 """
+from typing import Dict, List, Optional
+
 from pydantic import BaseModel, Field
+from tortoise.contrib.pydantic import pydantic_model_creator, pydantic_queryset_creator
+
 from models.auth.model import AuthUsers
 from schemas.base import BaseResponse
-from tortoise.contrib.pydantic import pydantic_model_creator, pydantic_queryset_creator
-from typing import Optional, Dict, List
 
 
 # -------------------------------用户创建---------------------------------
-class UserCreateRequest(pydantic_model_creator(
-    cls=AuthUsers,
-    name="UserCreateRequest",
-    exclude_readonly=True,
-)):
+class UserCreateRequest(
+    pydantic_model_creator(
+        cls=AuthUsers,
+        name="UserCreateRequest",
+        exclude_readonly=True,
+    )
+):
     """
     单用户创建请求
     """
+
     roles: Optional[List[int]] = Field(default=None, description="角色列表")
 
 
 # 单用户返回结果用于序列化
 UserCreateResult = pydantic_model_creator(
-    cls=AuthUsers,
-    name="UserCreateResult",
-    exclude=('password',)
+    cls=AuthUsers, name="UserCreateResult", exclude=("password",)
 )
 
 
@@ -44,6 +47,7 @@ class UserCreateResponse(BaseResponse):
     """
     单用户创建响应
     """
+
     data: Optional[UserCreateResultDocs] = None
 
 
@@ -52,15 +56,15 @@ class UserDeleteResponse(BaseResponse):
     """
     单用户删除响应
     """
-    data: Optional[Dict] = {
-        "id": 0
-    }
+
+    data: Optional[Dict] = {"id": 0}
 
 
 class UserBulkDeleteRequest(BaseModel):
     """
     批量用户删除请求
     """
+
     user_list: List[int] = Field(description="用户ID列表")
 
 
@@ -68,29 +72,36 @@ class UserBulkDeleteResponse(BaseResponse):
     """
     批量用户删除响应
     """
+
     data: Optional[List[int]]
 
 
 # -------------------------------用户更新---------------------------------
-class UserUpdateRequest(pydantic_model_creator(
-    cls=AuthUsers,
-    name="UserUpdateRequest",
-    exclude=("username", "password",),
-    exclude_readonly=True,
-    optional=("nickname",)
-)):
+class UserUpdateRequest(
+    pydantic_model_creator(
+        cls=AuthUsers,
+        name="UserUpdateRequest",
+        exclude=(
+            "username",
+            "password",
+        ),
+        exclude_readonly=True,
+        optional=("nickname",),
+    )
+):
     """
     单用户更新请求
     """
+
     roles: Optional[List[int]] = Field(default=None, description="角色列表")
-    update_roles: bool = Field(default=False, description="是否要更新角色，更新则必须设置为true")
+    update_roles: bool = Field(
+        default=False, description="是否要更新角色，更新则必须设置为true"
+    )
 
 
 # 单用户更新结果用于序列化
 UserUpdateResult = pydantic_model_creator(
-    cls=AuthUsers,
-    name="UserUpdateResult",
-    exclude=('password',)
+    cls=AuthUsers, name="UserUpdateResult", exclude=("password",)
 )
 
 
@@ -103,6 +114,7 @@ class UserUpdateResponse(BaseResponse):
     """
     单用户更新响应
     """
+
     data: Optional[UserUpdateResultDocs] = None
 
 
@@ -110,26 +122,28 @@ class UserBulkUpdateRequest(BaseModel):
     """
     批量用户更新请求
     """
+
     user_list: List[int] = Field(description="用户ID列表")
     user_type: Optional[int] = Field(default=None, description="用户类型")
     user_status: Optional[bool] = Field(default=None, description="用户状态")
     roles: Optional[List[int]] = Field(default=None, description="角色列表")
-    update_roles: bool = Field(default=False, description="是否要更新角色，更新则必须设置为true")
+    update_roles: bool = Field(
+        default=False, description="是否要更新角色，更新则必须设置为true"
+    )
 
 
 class UserBulkUpdateResponse(BaseResponse):
     """
     批量用户更新响应
     """
+
     data: Optional[List[int]] = None
 
 
 # -------------------------------用户查询---------------------------------
 # 当前用户查询结果
 UserGetResult = pydantic_model_creator(
-    cls=AuthUsers,
-    name="UserGetResult",
-    exclude=('password',)
+    cls=AuthUsers, name="UserGetResult", exclude=("password",)
 )
 
 
@@ -137,14 +151,13 @@ class UserGetResponse(BaseResponse):
     """
     当前用户查询响应
     """
+
     data: Optional[UserUpdateResult] = None
 
 
 # 用户过滤结果
 UserQuerySet = pydantic_queryset_creator(
-    cls=AuthUsers,
-    name="UserQuerySet",
-    exclude=('password',)
+    cls=AuthUsers, name="UserQuerySet", exclude=("password",)
 )
 
 
@@ -161,6 +174,7 @@ class UserQueryResponse(BaseResponse):
     """
     用户过滤响应
     """
+
     data: Optional[UserQueryResultsDocs] = None
 
 

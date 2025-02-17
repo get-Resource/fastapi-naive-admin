@@ -87,6 +87,8 @@ CREATE TABLE `auth_roles`  (
 -- Records of auth_roles
 -- ----------------------------
 INSERT INTO `auth_roles` VALUES (1, 1710008987, 1710008987, 'super_admin', '超级管理员', '平台内置角色,默认拥有全部权限', 1);
+INSERT INTO `auth_roles` VALUES (2, 1710008987, 1710008987, 'Annotater', '标注员', '平台内置角色,可以获取任务和数据，进行标注修改', 1);
+INSERT INTO `auth_roles` VALUES (3, 1710008987, 1710008987, 'auditor', '审核员', '平台内置角色,可以获取任务和数据，进行审核并标注修改', 1);
 
 -- ----------------------------
 -- Table structure for auth_roles_menus
