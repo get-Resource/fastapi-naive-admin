@@ -86,7 +86,7 @@ async def update_anntation(
     #     return fail(message="您不能将自己禁用")
     get_anntation = await Task_datas.get_or_none(pk=anntation_id)
     if not get_anntation:
-        return fail(message="用户不存在")
+        return fail(message="注释任务不存在")
     get_anntation.annotation = update_content.model_dump()
     get_anntation.status = 2  # 改为审核状态update_at
     get_anntation.update_at = int(timezone.now().timestamp())  # 改为审核状态

@@ -129,14 +129,23 @@ class AnntationQueryResponse(BaseResponse):
 
     data: Optional[AnntationQueryResultDocs] = None
 
+# 当前用户查询结果
+Task_datasGetResult = pydantic_model_creator(cls=Task_datas, name="Task_datasGetResult", exclude=("",))
+
+
+class Task_datasGetResponse(BaseResponse):
+    """
+    当前用户查询响应
+    """
+
+    data: Optional[Task_datasGetResult] = None # type: ignore
+
 
 # region 注释更新
 
 
 class Regions_model(BaseModel):  # 区域标注属性
-    shape_attributes: dict = (
-        {}
-    )  # 坐标信息其中name 为形状类型，如 rect,polygon,point,ellipse,circle,polyline
+    shape: str = None  # 坐标信息其中name 为形状类型，如 rect,polygon,point,ellipse,circle,polyline
     """  shape_attributes 例子
     "shape_attributes": {
         "name": "rect",
@@ -198,13 +207,13 @@ class Regions_model(BaseModel):  # 区域标注属性
     },
 }
     """
-    region_attributes: dict = {}  # 区域属性，其中 key 为属性名称，value为属性值
+    label: str = ""  # 区域属性，其中 key 为属性名称，value为属性值
+    transcription:str = "" # 文本抄写
+    points: list = []  # 区域属性，其中 key 为属性名称，value为属性值
 
 
 class anntation_UpdateRequest(BaseModel):  # 标注注释更新请求体
-    file_attributes: Regions_model = (
-        Regions_model()
-    )  # 文件属性标注，其中 key 为属性名称，value为属性值
+    file_attributes: dict = {}  # 文件属性标注，其中 key 为属性名称，value为属性值
     regions: List[Regions_model] = []  # 数据预取，预分配任务数量
 
 

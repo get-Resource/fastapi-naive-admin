@@ -67,7 +67,7 @@ class TaskUpdateRequest(
         cls=Tasks,
         name="TaskUpdateRequest",
         optional=("name", "nickname"),
-        exclude=("Datas_users",),
+        exclude=("Datas_users","datasets","datasets_id"),
         exclude_readonly=True,
     )
 ):

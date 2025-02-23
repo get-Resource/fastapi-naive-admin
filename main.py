@@ -47,8 +47,8 @@ init_logs()
 
 # 添加中间件
 # 检查非法IP
-app.add_middleware(RequestIpChaeckMiddleware)
 # 跨域
+print(settings.model_dump())
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -56,6 +56,7 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+app.add_middleware(RequestIpChaeckMiddleware)
 # 打印请求日志
 app.add_middleware(RequestLogMiddleware)
 
