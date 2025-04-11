@@ -10,7 +10,6 @@
 """
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.middleware import _MiddlewareClass
 from fastapi import Request, Response
 from loguru import logger
 from core.Exeption.Response import fail

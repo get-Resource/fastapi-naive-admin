@@ -22,7 +22,6 @@ from core.Exeption import Exception as Exception_obj
 from core.LogManage.init_log import init_logs
 from core.Middleware.RequestIpChaeckMiddleware import RequestIpChaeckMiddleware
 from core.Middleware.RequestLogMiddleware import RequestLogMiddleware
-from core.NiceguiWeb.init import register_gui
 from utils.config import settings
 
 # 实例化fastapi
@@ -66,7 +65,6 @@ app.add_event_handler("shutdown", shutdown_events.stopping(app))
 
 # API文档
 app.mount("/static", StaticFiles(directory="static"), name="static")
-register_gui(app)
 
 @app.get(
     f"{settings.SYS_ROUTER_PREFIX}/docs",

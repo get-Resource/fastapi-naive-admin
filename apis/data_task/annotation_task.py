@@ -14,9 +14,19 @@ import os
 from asyncio import Lock
 from typing import Annotated, Union
 
-from fastapi import APIRouter, File, Form, Query, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    FastAPI,
+    File,
+    Form,
+    Query,
+    Request,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from loguru import logger
-from tortoise import ConfigurationError, timezone
+from tortoise import timezone
 
 from core.Exeption.Response import fail, success
 from models.annotation.model import Datasets, File_Infos, Task_datas, Tasks
@@ -45,9 +55,10 @@ async def task_add(create_content: task_schema.TaskCreateRequest):
     # if not get_Datasets:
     #     return fail(message=f"数据集 {create_content.name} 不存在!")
     add_Task = await Tasks.create(**create_content.model_dump(exclude={"menus"}))
-    datasets: Datasets = await add_Task.datasets
-    for file in await datasets.files:
-        await Task_datas.create(file_info=file, task=add_Task)
+    if add_Task.datasets is not None:
+        datasets: Datasets = await add_Task.datasets
+        for file in await datasets.files:
+            await Task_datas.create(file_info=file, task=add_Task)
     if not add_Task:
         return fail(message="创建失败!")
     # add_Task.datasets = get_Datasets
@@ -113,7 +124,7 @@ async def Task_set(
 @router.get(
     "/query", summary="过滤用户列表", response_model=task_schema.TaskQueryResponse
 )
-async def auth_users_query(
+async def auth_task_query(
     name: str = Query(None),
     desc: str = Query(None),
     data_type: str = Query(None),
@@ -172,75 +183,62 @@ async def auth_users_query(
 async def task_annotation_get(
     request: Request,
     task_id: int,
-    assignment: bool = True,
 ):
     """
     查询用户
     :return:
     """
     # lock.acquire()
-    async with lock:
-        try:
-            get_user = await AuthUsers.get_or_none(pk=request.state.user_id)
-            if not get_user:
-                return fail(message="用户不存在")
-            format_user = await users_schema.UserGetResult.from_tortoise_orm(get_user)
-            format_user_dump = format_user.model_dump()
-            get_task = await Tasks.get_or_none(pk=task_id)
-            if not get_task:
-                return fail(message="任务不存在")
-            result = []
-            if assignment:  # 获取新的任务数据
-                if get_task.user_metadatas.get(str(get_user.id), None) is None:
-                    get_task.user_metadatas[str(get_user.id)] = {}
-                    
-                if get_task.user_metadatas[str(get_user.id)].get("views", None) is None:
-                    get_task.user_metadatas[str(get_user.id)]["views"] = []
-                    
-                task_datas = await get_task.task_datas.all()
-                tmep_task_data = None
-                for task_data in task_datas:
-                    worker = await task_data.worker
+    async def get_prefetch_task(get_task,prefetch_count = 5):
+        async with lock:
+            task_datas = await get_task.task_datas.all()
+            tmep_task_data = []
+            for task_data in task_datas:
+                worker = await task_data.worker
 
-                    if worker is None:
-                        try:
-                            get_task.user_metadatas[str(get_user.id)]["views"].append(
-                                {"annotation_id": task_data.id}
-                            )
-                            task_data.worker = get_user
-                            await task_data.save()
-                            tmep_task_data = task_data
+                if worker is None:
+                    try:
+                        task_data.worker = get_user
+                        await task_data.save()
+                        
+                        tmep_task_data.append(task_data)
+                        if len(tmep_task_data) >= prefetch_count:
                             break
-                        except Exception as e:
-                            print(e)
-                if len(get_task.user_metadatas[str(get_user.id)]["views"]) > 0 and get_task.user_metadatas[str(get_user.id)].get("current_view_index",None) is None:
-                    get_task.user_metadatas[str(get_user.id)]["current_view_index"] = 0
-                await get_task.save()
-                if tmep_task_data is None:
-                    return fail(message="任务查询识别，没有未分配数据", data={})
-                format_task = await anntation_schema.Task_datasGetResult.from_tortoise_orm(tmep_task_data)
-                task = format_task.model_dump(exclude_unset=True, exclude={"file_info": {"datasets"},"task": {"datasets":{"files"},"user_metadatas":{}},})
-                del task["task"]["user_metadatas"]
-                result = task # 返回单独的任务注释数据
-                
-            else:
-                format_task = await task_schema.TaskGetResult.from_tortoise_orm(get_task)
-                task = format_task.model_dump(exclude_unset=True, exclude={"datasets": {"files"}})
-                task["task_datas"] = [
-                    datas
-                    for datas in task["task_datas"]
-                    if datas.get("worker", None) is not None
-                    and format_user_dump.get("id", None) == datas.get("worker", {}).get("id", None)
-                ]
-                task["user_metadatas"] = task["user_metadatas"].get(
-                    str(format_user_dump.get("id", None)), {}
-                )
-                result = task
-        except Exception as e:
-            pass
+                    except Exception as e:
+                        print(e)
+            return tmep_task_data
+    result = []
+    try:
+        get_user = await AuthUsers.get_or_none(pk=request.state.user_id)
+        if not get_user:
+            return fail(message="用户不存在")
+        get_task = await Tasks.get_or_none(pk=task_id)
+        if not get_task:
+            return fail(message="任务不存在")
+        format_task = await task_schema.TaskGetResult.from_tortoise_orm(get_task)
+        task = format_task.model_dump(exclude={"datasets": {"files"},"task_datas":False})
+        task_datas = await get_task.task_datas.filter(worker=get_user).all() # 过滤出当前用户的任务数据
+        if task_datas is None:
+            task_datas = await get_prefetch_task(get_task,5)
+            
+        task_datas = [await anntation_schema.Task_datasGetResult.from_tortoise_orm(item) for item in task_datas]
+        task["task_datas"] = [item.model_dump(exclude_unset=True, exclude={"file_info": {"datasets"},"task": {"datasets":{"files"},"user_metadatas":{}},}) for item in task_datas] # 返回单独的任务注释数据
+
+        task["user_metadatas"] = task["user_metadatas"].get(
+            str(get_user.id), {}
+        ) # 获取用户当前任务数据进度
+        result = task
+        if isinstance(get_task.user_metadatas,dict): # 过滤出当前用户的任务数据
+            if get_task.user_metadatas.get(str(get_user.id), None) is None:
+                get_task.user_metadatas[str(get_user.id)] = {}
+            if get_task.user_metadatas[str(get_user.id)].get("current_view_index",None) is None:
+                get_task.user_metadatas[str(get_user.id)]["current_view_index"] = 0
+            await get_task.save()
+    except Exception as e:
+        logger.exception(e)
+        pass
             # 释放锁
             # lock.release()
-    # result = format_task.model_dump()
     return success(message="任务查询成功", data=result)
 
 
@@ -252,17 +250,9 @@ async def task_list():
 
     # 查询结果
     query_data = Tasks.all().order_by("id")
-
     # 序列化查询结果
     form_query_data = await task_schema.TaskQuerySet.from_queryset(query_data)
-
-    # 过滤菜单使Data[menus]中只包含关联菜单的id
     result = form_query_data.model_dump(exclude={"datasets": {"files"}})
-    # for Data in form_query_data.model_dump():
-    #     if Data.get("menus"):
-    #         Data["menus"] = [menus["id"] for menus in Data["menus"]]
-    #     result.append(Data)
-
     data = {
         "result": result,
     }

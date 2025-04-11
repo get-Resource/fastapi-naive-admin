@@ -24,6 +24,7 @@ def stopping(app: FastAPI) -> Callable:
         logger.info("FastApi 关闭事件监听")
 
         await app.state.cache.close()
+        await app.state.broadcast.disconnect()
         logger.success("Redis 关闭连接")
 
     return stop_app

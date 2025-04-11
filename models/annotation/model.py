@@ -10,7 +10,7 @@
 """
 
 from enum import IntEnum
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from tortoise import fields
 
@@ -26,6 +26,7 @@ class DataTypeEnum(IntEnum):
 
 
 class TaskStatusEnum(IntEnum):
+    not_consulted = 0  # 未查阅
     annotation = 1  # 标注
     examine = 2  # 审核审查
     deliver = 3  # 交付
@@ -36,9 +37,9 @@ class TaskStatusEnum(IntEnum):
 class obj_attributes(BaseResponse):
     type: str = "radio"  # radio ,text
     description: str = ""
-    options: dict = None
-    default_value: str = None
-    keyboard_shortcut: dict = None
+    options: Optional[dict] = None
+    default_value: Optional[str] = None
+    keyboard_shortcut: Optional[dict] = None
 
 
 class label_attributes(BaseResponse):
@@ -106,17 +107,17 @@ class Tasks(BaseModel):
     name = fields.CharField(max_length=32, unique=True, description="名称")
     desc = fields.CharField(max_length=128, null=True, description="描述")
     status = fields.IntEnumField(
-        enum_type=TaskStatusEnum, default=1, description="任务状态"
+        enum_type=TaskStatusEnum, default=0, description="任务状态"
     )
-    attributes: label_attributes = fields.JSONField(
+    attributes = fields.JSONField(
         default={}, description="标签元数据，定义任务标签,"
     )
-    user_metadatas: dict = fields.JSONField(
+    user_metadatas = fields.JSONField(
         default={}, description="记录用户所有数数据，比如标注到第几张,"
     )
     """
     {
-        user_id : {"current_index": 0，"current_filename": 0} # user_id的当前任务进度
+        user_id : {"current_index": 0} # user_id的当前任务进度
     }
     """
     datasets: fields.ForeignKeyNullableRelation["Datasets"] = fields.ForeignKeyField(
@@ -138,7 +139,7 @@ class Task_datas(BaseModel):
     status = fields.IntEnumField(
         enum_type=TaskStatusEnum, default=1, description="任务状态"
     )
-    annotation = fields.JSONField(default={}, description="任务状态")
+    annotation = fields.JSONField(default={}, description="标注数据")
     worker: fields.OneToOneRelation["AuthUsers"] = fields.OneToOneField(
         "models.AuthUsers",
         default=None,
@@ -148,6 +149,7 @@ class Task_datas(BaseModel):
     )  # 一对一
     file_info: fields.OneToOneRelation["File_Infos"] = fields.OneToOneField(
         "models.File_Infos",
+        default=None,
         on_delete=fields.OnDelete.CASCADE,
         related_name="annotation",
     )  # 一对一
@@ -161,3 +163,4 @@ class Task_datas(BaseModel):
         table = "task_data"
         table_description = "数据集"
         indexes = ("status",)
+Task_datas.delete

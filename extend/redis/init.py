@@ -14,10 +14,11 @@ from pydantic import Field
 from redis import asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.requests import Request
+import redis
 
 from utils.config import settings
 from loguru import logger
-
+from broadcaster import Broadcast
 
 class RedisMixin:
     def __init__(self):
@@ -98,9 +99,19 @@ class RedisMixin:
         return redis_conn
 
 
+
 async def register_redis(app: FastAPI):
+    redis_mixin = RedisMixin()
     # 注册redis测试连接
-    app.state.cache = await RedisMixin().connect_redis
+    app.state.cache = await redis_mixin.connect_redis
+    # 初始化 Broadcast 实例，这里使用 Redis 作为后端
+    host, port = redis_mixin.host.split(":")
+    username = redis_mixin.username if redis_mixin.username else ""
+    password = redis_mixin.password
+    
+    redir_url = f"redis://{username}:{password}@{host}:{port}/{redis_mixin.db + 1}"
+    app.state.broadcast = Broadcast(redir_url)
+    await app.state.broadcast.connect()
 
 
 redisCache = Annotated[Union[aioredis.Redis, aioredis.Sentinel, aioredis.RedisCluster], Field(description="redis联合类型")]

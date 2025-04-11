@@ -27,12 +27,10 @@ class TaskCreateRequest(
     )
 ):
     """
-    数据集创建请求
+    任务创建请求
     """
-
-    pass
-    # menus: Optional[List[int]] = Field(default=None, description="菜单 id 列表")
-
+    name: str = Field(..., description="任务名称", min_length=1, max_length=32)
+    desc: Optional[str] = Field(None, description="任务描述", max_length=128)
 
 TaskCreateResult = pydantic_model_creator(
     cls=Tasks, exclude=("Datas_users",), name="TaskCreateResult"
@@ -76,7 +74,7 @@ class TaskUpdateRequest(
     """
 
     pass
-    menus: Optional[List[int]] = Field(default=None, description="菜单 id 列表")
+    user_metadatas: Optional[Dict] = Field(default=None, description="用户元数据 id 列表")
 
 
 # 单用户更新结果
@@ -125,7 +123,7 @@ class TaskQueryResponse(BaseResponse):
 
 
 # 当前用户查询结果
-TaskGetResult = pydantic_model_creator(cls=Tasks, name="TaskGetResult", exclude=("",))
+TaskGetResult = pydantic_model_creator(cls=Tasks, name="TaskGetResult", exclude=("task_datas",))
 
 
 class TaskGetResponse(BaseResponse):

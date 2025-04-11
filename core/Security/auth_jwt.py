@@ -12,7 +12,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict
 from jose import JWTError, jwt
-from fastapi import Depends, Request, HTTPException
+from fastapi import Depends, Request, HTTPException,WebSocket
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import ValidationError
 from extend.redis.init import redisCache
@@ -117,3 +117,42 @@ async def check_user_jwt(req: Request,  token: str = Depends(OAuth2)):
     req.state.user_id = user_id
     # # 缓存用户名
     # req.state.username = username
+
+async def ws_check_user_jwt(req: WebSocket,  token: str):
+    """
+    权限验证
+    :param token:
+    :param req:
+    :return:
+    """
+    jwt_validation_error = HTTPException(status_code=401,
+                                         headers={"WWW-Authenticate": f"Bearer {token}"}, detail="无效凭证!")
+    jwt_expires_error = HTTPException(status_code=401,
+                                      headers={"WWW-Authenticate": f"Bearer {token}"}, detail="凭证已过期!")
+    try:
+        # token解密
+        payload = jwt_decode(token)
+        if payload:
+            # 用户ID
+            user_id = payload.get("user_id", None)
+            # 用户名
+            username = payload.get("username", None)
+            # 无效用户信息
+            if user_id is None or username is None:
+                raise jwt_validation_error
+            # 查询redis是否存在jwt
+            cache: redisCache = req.app.state.cache
+            cache_token = await cache.get(f"jwt:{user_id}")
+            # 如果和reids中的key不一致则前端请求刷新
+            if cache_token != token:
+                raise jwt_expires_error
+        else:
+            raise jwt_validation_error
+
+    except jwt.ExpiredSignatureError:
+        raise jwt_expires_error
+    except (JWTError, ValidationError):
+        raise jwt_validation_error
+    # ---------------------------------------验证权限-------------------------------------------------------------------
+    # 缓存用户ID至request
+    req.state.user_id = user_id

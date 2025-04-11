@@ -10,7 +10,7 @@
 """
 import os
 from functools import lru_cache
-from pathlib import PosixPath, WindowsPath
+from pathlib import Path, PosixPath, WindowsPath
 from typing import List, Optional, Union
 
 from pydantic_settings import BaseSettings
@@ -32,11 +32,11 @@ class Config(BaseSettings):
         env_prefix = "FASTAPI_"
 
     # 项目根路径
-    BASE_DIR: Optional[Union[PosixPath, WindowsPath]] = BASE_DIR
-    BASE_TEMPLATES_DIR: Optional[Union[PosixPath, WindowsPath]] = (
+    BASE_DIR: Union[PosixPath, WindowsPath,Path] = BASE_DIR
+    BASE_TEMPLATES_DIR: Optional[Union[PosixPath, WindowsPath,Path]] = (
         BASE_DIR / "templates" / "build"
     )
-    STATIC_DIR: Optional[Union[PosixPath, WindowsPath]] = BASE_DIR / "datasets"
+    STATIC_DIR: Union[PosixPath, WindowsPath,Path] = BASE_DIR / "datasets"
 
     # FastAPI配置
     SYS_TITLE: Optional[str] = DefaultConfig["SYSTEM"]["SYS_TITLE"]
@@ -50,7 +50,6 @@ class Config(BaseSettings):
         "SYS_ROUTER_SYNCROUTES"
     ]
     SYS_OPENAPI_URL: Optional[str] = DefaultConfig["SYSTEM"]["SYS_OPENAPI_URL"]
-
     # 跨域配置
     CORS_ORIGINS: Optional[List] = DefaultConfig["CORS"]["CORS_ORIGINS"]
     CORS_ALLOW_CREDENTIALS: Optional[bool] = DefaultConfig["CORS"][
@@ -111,4 +110,4 @@ def get_settings():
 settings = get_settings()
 
 if __name__ == "__main__":
-    print(settings.dict())
+    print(settings.model_dump())

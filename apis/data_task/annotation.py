@@ -13,10 +13,10 @@ import os
 from typing import Annotated, Union
 
 from fastapi import APIRouter, Body, Query, Request, UploadFile
-from tortoise import ConfigurationError, timezone
+from tortoise import timezone
 
 from core.Exeption.Response import fail, success
-from models.annotation.model import Datasets, File_Infos, Task_datas, Tasks
+from models.annotation.model import Datasets, File_Infos, Task_datas, TaskStatusEnum, Tasks
 from models.auth.model import AuthUsers
 from schemas.data_task import anntation_schema
 from utils.config import settings
@@ -88,7 +88,7 @@ async def update_anntation(
     if not get_anntation:
         return fail(message="注释任务不存在")
     get_anntation.annotation = update_content.model_dump()
-    get_anntation.status = 2  # 改为审核状态update_at
+    get_anntation.status = TaskStatusEnum.annotation  # 改为审核状态update_at
     get_anntation.update_at = int(timezone.now().timestamp())  # 改为审核状态
     await get_anntation.save()
     # 序列化
@@ -111,59 +111,31 @@ async def update_anntation(
     response_model=anntation_schema.AnntationQueryResponse,
 )
 async def annotation_list(
-    request: Request, prefetch: int = Query(0, description="数据预取，预分配任务数量")
+    request: Request
 ):
     """
     数据集列表
     """
+    prefetch = 0
     user_id = request.state.user_id
     get_user = await AuthUsers.get_or_none(pk=user_id)
-    if prefetch > 0:  # 获取未分配的任务数据
-        query_data = Task_datas.filter(worker=None).limit(prefetch)
-        annotations = []
-        for Task_data in await query_data.all():
-            Task_data.worker = None
-            if Task_data.worker is None:
-                try:
-                    Task_data.worker = get_user
-                    await Task_data.save()
-                    form_Task_data = (
-                        await anntation_schema.AnntationUpdateResult.from_tortoise_orm(
-                            Task_data
-                        )
-                    )
-                    form_Task_data = form_Task_data.model_dump(
-                        exclude={
-                            "worker": {"password", "roles"},
-                            "file_info": {"datasets"},
-                            "task": True,
-                        }
-                    )
-                    print(form_Task_data)
-                    annotations.append(form_Task_data)
-                except Exception as e:
-                    print(e)
-        result = annotations
-    else:
-        user_id = request.state.user_id
-        get_user = await AuthUsers.get_or_none(pk=user_id)
-        if not get_user:
-            return fail(message="用户不存在")
-        # 查询结果
-        query_data = Task_datas.filter(worker=get_user)
+    if not get_user:
+        return fail(message="用户不存在")
+    # 查询结果
+    query_data = Task_datas.filter(worker=get_user)
 
-        # 序列化查询结果
-        form_query_data = await anntation_schema.AnntationQuerySet.from_queryset(
-            query_data
-        )
-        result = form_query_data.model_dump(
-            exclude={
-                "__all__": {  # 列表排除
-                    "worker": {"password", "roles"},
-                    "file_info": {"datasets"},
-                    "task": True,
-                }
+    # 序列化查询结果
+    form_query_data = await anntation_schema.AnntationQuerySet.from_queryset(
+        query_data
+    )
+    result = form_query_data.model_dump(
+        exclude={
+            "__all__": {  # 列表排除
+                "worker": {"password", "roles"},
+                "file_info": {"datasets"},
+                "task": True,
             }
+        }
         )
 
     data = {

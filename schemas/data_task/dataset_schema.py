@@ -22,16 +22,16 @@ class DataCreateRequest(
     pydantic_model_creator(
         cls=Datasets,
         name="DataCreateRequest",
-        exclude=("nickname", "create_at", "update_at"),
+        exclude=("create_at", "update_at"),
         exclude_readonly=True,
     )
 ):
     """
     数据集创建请求
     """
-
-    pass
-    # menus: Optional[List[int]] = Field(default=None, description="菜单 id 列表")
+    name: str = Field(..., description="数据集名称", min_length=1, max_length=32)
+    desc: Optional[str] = Field(None, description="数据集描述", max_length=128)
+    # data_type: DataTypeEnum = Field(..., description="数据类型(1=image,2=video)")
 
 
 DataCreateResult = pydantic_model_creator(

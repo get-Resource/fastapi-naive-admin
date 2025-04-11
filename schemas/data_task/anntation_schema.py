@@ -130,7 +130,7 @@ class AnntationQueryResponse(BaseResponse):
     data: Optional[AnntationQueryResultDocs] = None
 
 # 当前用户查询结果
-Task_datasGetResult = pydantic_model_creator(cls=Task_datas, name="Task_datasGetResult", exclude=("",))
+Task_datasGetResult = pydantic_model_creator(cls=Task_datas, name="Task_datasGetResult", exclude=("task_datas",))
 
 
 class Task_datasGetResponse(BaseResponse):

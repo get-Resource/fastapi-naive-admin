@@ -9,6 +9,7 @@
 @Descripttion : "加载config.yaml"
 """
 
+from typing import Any, Dict
 import yaml
 import os.path
 from pathlib import Path
@@ -16,7 +17,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def load(file=os.path.join(BASE_DIR, 'config.yaml')):
+def load(file:str =os.path.join(BASE_DIR, 'config.yaml')) -> Dict[str, Any]:
     """
     载入yaml文件
     :param file:指定文件名
@@ -30,7 +31,7 @@ def load(file=os.path.join(BASE_DIR, 'config.yaml')):
         config = yaml.load(yaml_file, Loader=yaml.FullLoader)
         return config
     except IOError  as e:
-        return "读取的文件不存在：{}".format(file)
+        return {"error": str(e)}
 
 
 if __name__ == '__main__':
